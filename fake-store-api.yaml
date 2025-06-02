@@ -38,6 +38,10 @@ paths:
       responses:
         '200':
           description: Produto criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
 
   /products/{id}:
     get:
