@@ -1,331 +1,680 @@
-openapi: 3.0.3
+openapi: 3.0.0
 info:
   title: Fake Store API
-  description: API fake para testes e protótipos de loja virtual.
-  version: "1.0.0"
+  description: API de loja falsa para prototipagem e testes.
+  version: 1.0.0
 servers:
   - url: https://fakestoreapi.com
-
 tags:
   - name: Products
-    description: Gerenciamento de produtos
-  - name: Carts
-    description: Gerenciamento de carrinhos de compras
+    description: Operações relacionadas a produtos da loja.
+  - name: Categories
+    description: Operações relacionadas às categorias de produtos.
   - name: Users
-    description: Gerenciamento de usuários
-  - name: Auth
-    description: Autenticação de usuários
-
+    description: Operações relacionadas a usuários da loja.
+  - name: Carts
+    description: Operações relacionadas aos carrinhos de compra.
+  - name: Authentication
+    description: Operações de autenticação de usuário.
 paths:
   /products:
     get:
+      summary: Obter todos os produtos
+      description: Retorna uma lista de todos os produtos.
+      operationId: getAllProducts
       tags:
-        - Products
-      summary: Lista todos os produtos
+        - Products # Associando à tag Products
+      parameters:
+        - name: limit
+          in: query
+          description: Limita o número de resultados.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: sort
+          in: query
+          description: Classifica os resultados por 'desc' (descendente) ou 'asc' (ascendente).
+          required: false
+          schema:
+            type: string
+            enum: [desc, asc]
       responses:
         '200':
-          description: Lista de produtos
+          description: Sucesso. Retorna uma lista de produtos.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
     post:
+      summary: Adicionar um novo produto
+      description: Adiciona um novo produto à loja.
+      operationId: addProduct
       tags:
-        - Products
-      summary: Cria um novo produto
+        - Products # Associando à tag Products
       requestBody:
+        description: Objeto de produto a ser adicionado.
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Product'
+              $ref: '#/components/schemas/NewProduct'
       responses:
         '200':
-          description: Produto criado com sucesso
+          description: Sucesso. Retorna o produto adicionado com um ID.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Product'
-
   /products/{id}:
     get:
+      summary: Obter um único produto
+      description: Retorna um único produto com base no ID.
+      operationId: getSingleProduct
       tags:
-        - Products
-      summary: Retorna um produto por ID
+        - Products # Associando à tag Products
       parameters:
         - name: id
           in: path
+          description: ID do produto a ser retornado.
           required: true
           schema:
             type: integer
+            format: int64
       responses:
         '200':
-          description: Produto encontrado
+          description: Sucesso. Retorna o produto.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Produto não encontrado.
     put:
+      summary: Atualizar um produto
+      description: Atualiza um produto existente com base no ID.
+      operationId: updateProduct
       tags:
-        - Products
-      summary: Atualiza um produto por ID
+        - Products # Associando à tag Products
       parameters:
         - name: id
           in: path
+          description: ID do produto a ser atualizado.
           required: true
           schema:
             type: integer
+            format: int64
       requestBody:
+        description: Objeto de produto com os campos a serem atualizados.
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Product'
+              $ref: '#/components/schemas/NewProduct'
       responses:
         '200':
-          description: Produto atualizado
-    delete:
+          description: Sucesso. Retorna o produto atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Produto não encontrado.
+    patch:
+      summary: Atualizar parcialmente um produto
+      description: Atualiza parcialmente um produto existente com base no ID.
+      operationId: partiallyUpdateProduct
       tags:
-        - Products
-      summary: Deleta um produto por ID
+        - Products # Associando à tag Products
       parameters:
         - name: id
           in: path
+          description: ID do produto a ser atualizado.
           required: true
           schema:
             type: integer
+            format: int64
+      requestBody:
+        description: Objeto de produto com os campos a serem atualizados.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProduct' # Pode ser mais flexível para PATCH
       responses:
         '200':
-          description: Produto deletado
-
-  /products/category/{category}:
-    get:
+          description: Sucesso. Retorna o produto atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Produto não encontrado.
+    delete:
+      summary: Excluir um produto
+      description: Exclui um produto existente com base no ID.
+      operationId: deleteProduct
       tags:
-        - Products
-      summary: Retorna produtos de uma categoria específica
+        - Products # Associando à tag Products
       parameters:
-        - name: category
+        - name: id
           in: path
+          description: ID do produto a ser excluído.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Sucesso. Retorna o produto excluído.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Produto não encontrado.
+  /products/categories:
+    get:
+      summary: Obter todas as categorias de produtos
+      description: Retorna uma lista de todas as categorias de produtos únicas.
+      operationId: getAllProductCategories
+      tags:
+        - Categories # Associando à tag Categories
+      responses:
+        '200':
+          description: Sucesso. Retorna uma lista de strings representando as categorias.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /products/category/{category_name}:
+    get:
+      summary: Obter produtos por categoria
+      description: Retorna uma lista de produtos de uma categoria específica.
+      operationId: getProductsByCategory
+      tags:
+        - Categories # Associando à tag Categories
+      parameters:
+        - name: category_name
+          in: path
+          description: Nome da categoria.
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Lista de produtos da categoria
-
-  /products/categories:
-    get:
-      tags:
-        - Products
-      summary: Lista todas as categorias
-      responses:
-        '200':
-          description: Lista de categorias
-
-  /carts:
-    get:
-      tags:
-        - Carts
-      summary: Lista todos os carrinhos
-      responses:
-        '200':
-          description: Lista de carrinhos
-    post:
-      tags:
-        - Carts
-      summary: Cria um novo carrinho
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Cart'
-      responses:
-        '200':
-          description: Carrinho criado
-
-  /carts/{id}:
-    get:
-      tags:
-        - Carts
-      summary: Retorna um carrinho por ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Carrinho encontrado
-    put:
-      tags:
-        - Carts
-      summary: Atualiza um carrinho por ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Cart'
-      responses:
-        '200':
-          description: Carrinho atualizado
-    delete:
-      tags:
-        - Carts
-      summary: Deleta um carrinho por ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Carrinho deletado
-
-  /carts/user/{userId}:
-    get:
-      tags:
-        - Carts
-      summary: Retorna carrinhos de um usuário
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Lista de carrinhos do usuário
-
+          description: Sucesso. Retorna uma lista de produtos da categoria especificada.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
   /users:
     get:
+      summary: Obter todos os usuários
+      description: Retorna uma lista de todos os usuários.
+      operationId: getAllUsers
       tags:
-        - Users
-      summary: Lista todos os usuários
+        - Users # Associando à tag Users
+      parameters:
+        - name: limit
+          in: query
+          description: Limita o número de resultados.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: sort
+          in: query
+          description: Classifica os resultados por 'desc' (descendente) ou 'asc' (ascendente).
+          required: false
+          schema:
+            type: string
+            enum: [desc, asc]
       responses:
         '200':
-          description: Lista de usuários
+          description: Sucesso. Retorna uma lista de usuários.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
     post:
+      summary: Adicionar um novo usuário
+      description: Adiciona um novo usuário.
+      operationId: addUser
       tags:
-        - Users
-      summary: Cria um novo usuário
+        - Users # Associando à tag Users
       requestBody:
+        description: Objeto de usuário a ser adicionado.
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/NewUser'
       responses:
         '200':
-          description: Usuário criado
-
+          description: Sucesso. Retorna o usuário adicionado com um ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
   /users/{id}:
     get:
+      summary: Obter um único usuário
+      description: Retorna um único usuário com base no ID.
+      operationId: getSingleUser
       tags:
-        - Users
-      summary: Retorna um usuário por ID
+        - Users # Associando à tag Users
       parameters:
         - name: id
           in: path
+          description: ID do usuário a ser retornado.
           required: true
           schema:
             type: integer
+            format: int64
       responses:
         '200':
-          description: Usuário encontrado
+          description: Sucesso. Retorna o usuário.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Usuário não encontrado.
     put:
+      summary: Atualizar um usuário
+      description: Atualiza um usuário existente com base no ID.
+      operationId: updateUser
       tags:
-        - Users
-      summary: Atualiza um usuário por ID
+        - Users # Associando à tag Users
       parameters:
         - name: id
           in: path
+          description: ID do usuário a ser atualizado.
           required: true
           schema:
             type: integer
+            format: int64
       requestBody:
+        description: Objeto de usuário com os campos a serem atualizados.
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/NewUser'
       responses:
         '200':
-          description: Usuário atualizado
-    delete:
+          description: Sucesso. Retorna o usuário atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Usuário não encontrado.
+    patch:
+      summary: Atualizar parcialmente um usuário
+      description: Atualiza parcialmente um usuário existente com base no ID.
+      operationId: partiallyUpdateUser
       tags:
-        - Users
-      summary: Deleta um usuário por ID
+        - Users # Associando à tag Users
       parameters:
         - name: id
           in: path
+          description: ID do usuário a ser atualizado.
           required: true
           schema:
             type: integer
+            format: int64
+      requestBody:
+        description: Objeto de usuário com os campos a serem atualizados.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewUser' # Pode ser mais flexível para PATCH
       responses:
         '200':
-          description: Usuário deletado
-
+          description: Sucesso. Retorna o usuário atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Usuário não encontrado.
+    delete:
+      summary: Excluir um usuário
+      description: Exclui um usuário existente com base no ID.
+      operationId: deleteUser
+      tags:
+        - Users # Associando à tag Users
+      parameters:
+        - name: id
+          in: path
+          description: ID do usuário a ser excluído.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Sucesso. Retorna o usuário excluído.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Usuário não encontrado.
+  /carts:
+    get:
+      summary: Obter todos os carrinhos
+      description: Retorna uma lista de todos os carrinhos.
+      operationId: getAllCarts
+      tags:
+        - Carts # Associando à tag Carts
+      parameters:
+        - name: limit
+          in: query
+          description: Limita o número de resultados.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+        - name: sort
+          in: query
+          description: Classifica os resultados por 'desc' (descendente) ou 'asc' (ascendente).
+          required: false
+          schema:
+            type: string
+            enum: [desc, asc]
+        - name: startdate
+          in: query
+          description: Filtra os carrinhos a partir desta data (e.g., 2019-12-10).
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: enddate
+          in: query
+          description: Filtra os carrinhos até esta data (e.g., 2020-01-01).
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Sucesso. Retorna uma lista de carrinhos.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Cart'
+    post:
+      summary: Adicionar um novo carrinho
+      description: Adiciona um novo carrinho.
+      operationId: addCart
+      tags:
+        - Carts # Associando à tag Carts
+      requestBody:
+        description: Objeto de carrinho a ser adicionado.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCart'
+      responses:
+        '200':
+          description: Sucesso. Retorna o carrinho adicionado com um ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+  /carts/{id}:
+    get:
+      summary: Obter um único carrinho
+      description: Retorna um único carrinho com base no ID.
+      operationId: getSingleCart
+      tags:
+        - Carts # Associando à tag Carts
+      parameters:
+        - name: id
+          in: path
+          description: ID do carrinho a ser retornado.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Sucesso. Retorna o carrinho.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '404':
+          description: Carrinho não encontrado.
+    put:
+      summary: Atualizar um carrinho
+      description: Atualiza um carrinho existente com base no ID.
+      operationId: updateCart
+      tags:
+        - Carts # Associando à tag Carts
+      parameters:
+        - name: id
+          in: path
+          description: ID do carrinho a ser atualizado.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: Objeto de carrinho com os campos a serem atualizados.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCart'
+      responses:
+        '200':
+          description: Sucesso. Retorna o carrinho atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '404':
+          description: Carrinho não encontrado.
+    patch:
+      summary: Atualizar parcialmente um carrinho
+      description: Atualiza parcialmente um carrinho existente com base no ID.
+      operationId: partiallyUpdateCart
+      tags:
+        - Carts # Associando à tag Carts
+      parameters:
+        - name: id
+          in: path
+          description: ID do carrinho a ser atualizado.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: Objeto de carrinho com os campos a serem atualizados.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCart' # Pode ser mais flexível para PATCH
+      responses:
+        '200':
+          description: Sucesso. Retorna o carrinho atualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '404':
+          description: Carrinho não encontrado.
+    delete:
+      summary: Excluir um carrinho
+      description: Exclui um carrinho existente com base no ID.
+      operationId: deleteCart
+      tags:
+        - Carts # Associando à tag Carts
+      parameters:
+        - name: id
+          in: path
+          description: ID do carrinho a ser excluído.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Sucesso. Retorna o carrinho excluído.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '404':
+          description: Carrinho não encontrado.
+  /carts/user/{user_id}:
+    get:
+      summary: Obter carrinhos de um usuário específico
+      description: Retorna uma lista de carrinhos de um usuário específico.
+      operationId: getUserCarts
+      tags:
+        - Carts # Associando à tag Carts
+      parameters:
+        - name: user_id
+          in: path
+          description: ID do usuário.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Sucesso. Retorna uma lista de carrinhos do usuário especificado.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Cart'
   /auth/login:
     post:
+      summary: Autenticar usuário
+      description: Autentica um usuário e retorna um token.
+      operationId: loginUser
       tags:
-        - Auth
-      summary: Autentica um usuário
+        - Authentication # Associando à tag Authentication
       requestBody:
+        description: Credenciais do usuário para login.
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - username
+                - password
               properties:
                 username:
                   type: string
+                  example: mor_2314
                 password:
                   type: string
+                  example: 83r5^_
       responses:
         '200':
-          description: Token JWT retornado
-
+          description: Sucesso. Retorna um token de autenticação.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Token de autenticação.
+        '401':
+          description: Credenciais inválidas.
 components:
   schemas:
     Product:
       type: object
       properties:
+        id:
+          type: integer
+          description: ID único do produto.
+          readOnly: true
         title:
           type: string
+          description: Título do produto.
         price:
           type: number
+          format: float
+          description: Preço do produto.
         description:
           type: string
+          description: Descrição detalhada do produto.
         category:
           type: string
+          description: Categoria do produto.
         image:
           type: string
-
-    Cart:
+          format: url
+          description: URL da imagem do produto.
+        rating:
+          type: object
+          properties:
+            rate:
+              type: number
+              format: float
+            count:
+              type: integer
+    NewProduct:
       type: object
+      required:
+        - title
+        - price
+        - description
+        - image
+        - category
       properties:
-        userId:
-          type: integer
-        date:
+        title:
           type: string
-          format: date
-        products:
-          type: array
-          items:
-            type: object
-            properties:
-              productId:
-                type: integer
-              quantity:
-                type: integer
-
+          description: Título do produto.
+        price:
+          type: number
+          format: float
+          description: Preço do produto.
+        description:
+          type: string
+          description: Descrição detalhada do produto.
+        image:
+          type: string
+          format: url
+          description: URL da imagem do produto.
+        category:
+          type: string
+          description: Categoria do produto.
     User:
       type: object
       properties:
+        id:
+          type: integer
+          description: ID único do usuário.
+          readOnly: true
         email:
           type: string
+          format: email
         username:
           type: string
         password:
@@ -357,3 +706,108 @@ components:
                   type: string
         phone:
           type: string
+    NewUser:
+      type: object
+      required:
+        - email
+        - username
+        - password
+        - name
+        - address
+        - phone
+      properties:
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        password:
+          type: string
+        name:
+          type: object
+          required:
+            - firstname
+            - lastname
+          properties:
+            firstname:
+              type: string
+            lastname:
+              type: string
+        address:
+          type: object
+          required:
+            - city
+            - street
+            - number
+            - zipcode
+            - geolocation
+          properties:
+            city:
+              type: string
+            street:
+              type: string
+            number:
+              type: integer
+            zipcode:
+              type: string
+            geolocation:
+              type: object
+              required:
+                - lat
+                - long
+              properties:
+                lat:
+                  type: string
+                long:
+                  type: string
+        phone:
+          type: string
+    Cart:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID único do carrinho.
+          readOnly: true
+        userId:
+          type: integer
+          description: ID do usuário proprietário do carrinho.
+        date:
+          type: string
+          format: date
+          description: Data da criação do carrinho.
+        products:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: integer
+              quantity:
+                type: integer
+    NewCart:
+      type: object
+      required:
+        - userId
+        - date
+        - products
+      properties:
+        userId:
+          type: integer
+          description: ID do usuário proprietário do carrinho.
+        date:
+          type: string
+          format: date
+          description: Data da criação do carrinho.
+        products:
+          type: array
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+            properties:
+              productId:
+                type: integer
+              quantity:
+                type: integer
